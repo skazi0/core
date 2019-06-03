@@ -26,6 +26,7 @@ namespace OC\Encryption;
 use OC\Files\Filesystem;
 use \OC\Files\Mount;
 use \OC\Files\View;
+use OCP\IConfig;
 
 /**
  * update encrypted files, e.g. because a file was shared
@@ -47,6 +48,8 @@ class Update {
 	/** @var string */
 	protected $uid;
 
+	private $config;
+
 	/** @var \OC\Encryption\File */
 	protected $file;
 
@@ -64,6 +67,7 @@ class Update {
 			Util $util,
 			Mount\Manager $mountManager,
 			Manager $encryptionManager,
+			IConfig $config,
 			File $file,
 			$uid
 		) {
@@ -71,6 +75,7 @@ class Update {
 		$this->util = $util;
 		$this->mountManager = $mountManager;
 		$this->encryptionManager = $encryptionManager;
+		$this->config = $config;
 		$this->file = $file;
 		$this->uid = $uid;
 	}
@@ -81,7 +86,8 @@ class Update {
 	 * @param array $params
 	 */
 	public function postShared($params) {
-		if ($this->encryptionManager->isEnabled()) {
+		if ($this->encryptionManager->isEnabled() &&
+			($this->config->getAppValue('encryption', 'useMasterKey', '0') === '0')) {
 			if ($params['itemType'] === 'file' || $params['itemType'] === 'folder') {
 				$path = Filesystem::getPath($params['fileSource']);
 				list($owner, $ownerPath) = $this->getOwnerPath($path);

@@ -22,6 +22,7 @@
 namespace Test\Encryption;
 
 use OC\Encryption\Update;
+use OCP\IConfig;
 use Test\TestCase;
 
 class UpdateTest extends TestCase {
@@ -44,6 +45,9 @@ class UpdateTest extends TestCase {
 	/** @var \OC\Encryption\Manager | \PHPUnit\Framework\MockObject\MockObject */
 	private $encryptionManager;
 
+	/** @var IConfig | \PHPUnit\Framework\MockObject\MockObject */
+	private $config;
+
 	/** @var \OCP\Encryption\IEncryptionModule | \PHPUnit\Framework\MockObject\MockObject */
 	private $encryptionModule;
 
@@ -61,6 +65,7 @@ class UpdateTest extends TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->encryptionManager = $this->getMockBuilder('\OC\Encryption\Manager')
 			->disableOriginalConstructor()->getMock();
+		$this->config = $this->createMock(IConfig::class);
 		$this->fileHelper = $this->getMockBuilder('\OC\Encryption\File')
 			->disableOriginalConstructor()->getMock();
 		$this->encryptionModule = $this->getMockBuilder('\OCP\Encryption\IEncryptionModule')
@@ -73,6 +78,7 @@ class UpdateTest extends TestCase {
 			$this->util,
 			$this->mountManager,
 			$this->encryptionManager,
+			$this->config,
 			$this->fileHelper,
 			$this->uid);
 	}
@@ -86,6 +92,9 @@ class UpdateTest extends TestCase {
 	 * @param integer $numberOfFiles
 	 */
 	public function testUpdate($path, $isDir, $allFiles, $numberOfFiles) {
+		$this->config->method('getAppValue')
+			->with('encryption', 'useMasterKey', '0')
+			->willReturn('0');
 		$this->encryptionManager->expects($this->once())
 			->method('getEncryptionModule')
 			->willReturn($this->encryptionModule);
@@ -132,6 +141,10 @@ class UpdateTest extends TestCase {
 	 */
 	public function testPostRename($source, $target, $encryptionEnabled) {
 		$updateMock = $this->getUpdateMock(['update', 'getOwnerPath']);
+
+		$this->config->method('getAppValue')
+			->with('encryption', 'useMasterKey', '0')
+			->willReturn('0');
 
 		$this->encryptionManager->expects($this->once())
 			->method('isEnabled')
@@ -219,9 +232,23 @@ class UpdateTest extends TestCase {
 					$this->util,
 					$this->mountManager,
 					$this->encryptionManager,
+					$this->config,
 					$this->fileHelper,
 					$this->uid
 				]
 			)->setMethods($methods)->getMock();
+	}
+
+	public function testUpdateWithMasterKeyEncryption() {
+		$this->config->method('getAppValue')
+			->with('encryption', 'useMasterKey', '0')
+			->willReturn('1');
+
+		$this->encryptionManager->method('isEnabled')
+			->willReturn(true);
+
+		$this->encryptionManager->expects($this->never())
+			->method('getEncryptionModule');
+		$this->update->postShared([]);
 	}
 }

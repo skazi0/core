@@ -99,6 +99,7 @@ class EncryptionWrapper {
 				$util,
 				Filesystem::getMountManager(),
 				$this->manager,
+				\OC::$server->getConfig(),
 				$fileHelper,
 				$uid
 			);

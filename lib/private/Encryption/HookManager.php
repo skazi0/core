@@ -65,6 +65,7 @@ class HookManager {
 					\OC::$server->getConfig()),
 				Filesystem::getMountManager(),
 				\OC::$server->getEncryptionManager(),
+				\OC::$server->getConfig(),
 				\OC::$server->getEncryptionFilesHelper(),
 				$uid
 			);
