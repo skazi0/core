@@ -878,7 +878,7 @@ class WebUISharingContext extends RawMinkContext implements Context {
 		$requiredString
 	) {
 		$this->allUsersAndGroupsThatContainTheStringInTheirNameShouldBeListedInTheAutocompleteListExcept(
-			$requiredString, '', ''
+			$requiredString, 'user', ''
 		);
 	}
 
@@ -898,27 +898,37 @@ class WebUISharingContext extends RawMinkContext implements Context {
 			$notToBeListed
 				= $this->sharingDialog->groupStringsToMatchAutoComplete($notToBeListed);
 		}
+		if ($userOrGroup === 'user') {
+			$notToBeListed
+				= $this->sharingDialog->userStringsToMatchAutoComplete($notToBeListed);
+		}
 		$autocompleteItems = $this->sharingDialog->getAutocompleteItemsList();
 		// Keep separate arrays of users and groups, because the names can overlap
-		$createdElements = [];
-		$createdElements['groups'] = $this->sharingDialog->groupStringsToMatchAutoComplete(
-			$this->featureContext->getCreatedGroups()
+		$createdElementsWithDisplayNames = [];
+		$createdElementsWithFullDisplayText = [];
+		$createdElementsWithDisplayNames['groups'] = $this->featureContext->getCreatedGroupDisplayNames();
+		$createdElementsWithFullDisplayText['groups'] = $this->sharingDialog->groupStringsToMatchAutoComplete(
+			$createdElementsWithDisplayNames['groups']
 		);
-		$createdElements['users'] = $this->featureContext->getCreatedUserDisplayNames();
+		$createdElementsWithDisplayNames['users'] = $this->featureContext->getCreatedUserDisplayNames();
+		$createdElementsWithFullDisplayText['users'] = $this->sharingDialog->userStringsToMatchAutoComplete(
+			$createdElementsWithDisplayNames['users']
+		);
 		$numExpectedItems = 0;
-		foreach ($createdElements as $elementArray) {
-			foreach ($elementArray as $internalName => $displayName) {
+		foreach ($createdElementsWithFullDisplayText as $usersOrGroups => $elementArray) {
+			foreach ($elementArray as $internalName => $fullDisplayText) {
+				$displayName = $createdElementsWithDisplayNames[$usersOrGroups][$internalName];
 				// Matching should be case-insensitive on the internal or display name
 				if (((\stripos($internalName, $requiredString) !== false)
 					|| (\stripos($displayName, $requiredString) !== false))
-					&& ($displayName !== $notToBeListed)
+					&& ($fullDisplayText !== $notToBeListed)
 					&& ($displayName !== $this->featureContext->getCurrentUser())
 					&& ($displayName !== $this->featureContext->getCurrentUserDisplayName())
 				) {
 					PHPUnit\Framework\Assert::assertContains(
-						$displayName,
+						$fullDisplayText,
 						$autocompleteItems,
-						"'$displayName' not in autocomplete list"
+						"'$fullDisplayText' not in autocomplete list"
 					);
 					$numExpectedItems = $numExpectedItems + 1;
 				}
@@ -976,8 +986,9 @@ class WebUISharingContext extends RawMinkContext implements Context {
 	 */
 	public function userShouldNotBeListedInTheAutocompleteListOnTheWebui($username) {
 		$names = $this->sharingDialog->getAutocompleteItemsList();
-		if (\in_array($username, $names)) {
-			throw new Exception("$username found in autocomplete list but not expected");
+		$userString = $this->sharingDialog->userStringsToMatchAutoComplete($username);
+		if (\in_array($userString, $names)) {
+			throw new Exception("$username ($userString) found in autocomplete list but not expected");
 		}
 	}
 
